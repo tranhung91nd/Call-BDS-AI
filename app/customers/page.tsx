@@ -1,14 +1,9 @@
 import { Upload, Plus, Search, Filter, Phone } from "lucide-react"
 import { formatPhone } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/server"
+import type { Customer } from "@/lib/types"
 
-const MOCK = [
-  { id: "1", phone: "0912345678", name: "Nguyễn Văn A", project: "Vinhomes Ocean Park", status: "chua_goi", source: "Lead form FB" },
-  { id: "2", phone: "0987654321", name: "Trần Thị B", project: "Masteri Centre Point", status: "quan_tam", source: "Lead form FB" },
-  { id: "3", phone: "0901112223", name: "Lê Văn C", project: "Vinhomes Ocean Park", status: "khong_nghe", source: "Sự kiện 04/2026" },
-  { id: "4", phone: "0922334455", name: "Phạm Thị D", project: "Lumi Hà Nội", status: "goi_lai", source: "Lead form FB" },
-  { id: "5", phone: "0934567890", name: "Hoàng Văn E", project: "Vinhomes Ocean Park", status: "quan_tam", source: "Landing page" },
-  { id: "6", phone: "0945678901", name: "Vũ Thị F", project: "Masteri Centre Point", status: "khong_quan_tam", source: "Lead form FB" },
-] as const
+export const revalidate = 0
 
 const STATUS_BADGE: Record<string, string> = {
   chua_goi: "b-gray",
@@ -28,13 +23,24 @@ const STATUS_LABEL: Record<string, string> = {
   khong_nghe: "Không nghe máy",
 }
 
-export default function CustomersPage() {
+export default async function CustomersPage() {
+  const supabase = createClient()
+  const { data: customers, error } = await supabase
+    .from("customers")
+    .select("id, phone, name, project_interest, source, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(200)
+
+  const rows = (customers ?? []) as Pick<Customer, "id" | "phone" | "name" | "project_interest" | "source" | "status">[]
+
   return (
     <div className="space-y-5 max-w-7xl">
       <header className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Khách hàng</h1>
-          <p className="page-sub">Quản lý danh sách khách BĐS có SĐT để AI gọi.</p>
+          <p className="page-sub">
+            Quản lý danh sách khách BĐS có SĐT để AI gọi. {error ? "(lỗi tải data)" : `Hiện có ${rows.length} khách.`}
+          </p>
         </div>
         <div className="flex gap-2">
           <button className="btn-ghost btn-sm">
@@ -46,7 +52,6 @@ export default function CustomersPage() {
         </div>
       </header>
 
-      {/* Filter bar */}
       <div className="card p-3 flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[220px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
@@ -63,7 +68,6 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -78,27 +82,32 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {MOCK.map((c) => (
-                <tr key={c.id} className="border-b border-line-1 last:border-0 hover:bg-surface-2/60 transition-colors">
-                  <td className="px-4 py-3 font-mono text-base tabular-nums text-ink-1">{formatPhone(c.phone)}</td>
-                  <td className="px-4 py-3 text-base text-ink-1 font-medium">{c.name}</td>
-                  <td className="px-4 py-3 text-base text-ink-2">{c.project}</td>
-                  <td className="px-4 py-3 text-sm text-ink-3">{c.source}</td>
-                  <td className="px-4 py-3">
-                    <span className={STATUS_BADGE[c.status]}>{STATUS_LABEL[c.status]}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="inline-flex items-center gap-1.5 text-brand-blue-tx hover:underline text-sm font-medium">
-                      <Phone size={12} /> Sửa
-                    </button>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-ink-3 text-base">
+                    {error ? `Lỗi: ${error.message}` : "Chưa có khách nào — chạy SQL seed 0002 hoặc Import CSV để thêm."}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                rows.map((c) => (
+                  <tr key={c.id} className="border-b border-line-1 last:border-0 hover:bg-surface-2/60 transition-colors">
+                    <td className="px-4 py-3 font-mono text-base tabular-nums text-ink-1">{formatPhone(c.phone)}</td>
+                    <td className="px-4 py-3 text-base text-ink-1 font-medium">{c.name || <span className="text-ink-hint">—</span>}</td>
+                    <td className="px-4 py-3 text-base text-ink-2">{c.project_interest || <span className="text-ink-hint">—</span>}</td>
+                    <td className="px-4 py-3 text-sm text-ink-3">{c.source || <span className="text-ink-hint">—</span>}</td>
+                    <td className="px-4 py-3">
+                      <span className={STATUS_BADGE[c.status] ?? "b-gray"}>{STATUS_LABEL[c.status] ?? c.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button className="inline-flex items-center gap-1.5 text-brand-blue-tx hover:underline text-sm font-medium">
+                        <Phone size={12} /> Sửa
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        </div>
-        <div className="px-4 py-2.5 text-xs text-ink-hint bg-surface-2/40 border-t border-line-1">
-          Dữ liệu mẫu — sau khi kết nối Supabase + import CSV sẽ thay bằng data thật.
         </div>
       </div>
     </div>

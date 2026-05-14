@@ -1,12 +1,8 @@
 import { Users, Megaphone, Flame, PhoneCall, ArrowRight, Sparkles } from "lucide-react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/server"
 
-const KPI = [
-  { label: "Tổng khách hàng", value: "0", icon: Users, hint: "Chưa import danh sách" },
-  { label: "Chiến dịch đang chạy", value: "0", icon: Megaphone, hint: "Tạo mới ở tab Chiến dịch" },
-  { label: "Cuộc gọi hôm nay", value: "0", icon: PhoneCall, hint: "Cập nhật real-time" },
-  { label: "Lead nóng cần follow", value: "0", icon: Flame, hint: "Khách quan tâm chờ Zalo", accent: "amber" },
-]
+export const revalidate = 0
 
 const STEPS = [
   { i: 1, t: "Import 1.000 SĐT", d: "Tab Khách hàng → upload CSV", href: "/customers" },
@@ -16,7 +12,30 @@ const STEPS = [
   { i: 5, t: "Sale chốt qua Zalo", d: "Tab Lead nóng → mở Zalo deep-link", href: "/hot-leads" },
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = createClient()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayIso = today.toISOString()
+
+  const [customers, runningCamps, callsToday, hotLeads] = await Promise.all([
+    supabase.from("customers").select("id", { count: "exact", head: true }),
+    supabase.from("campaigns").select("id", { count: "exact", head: true }).eq("status", "running"),
+    supabase.from("call_logs").select("id", { count: "exact", head: true }).gte("started_at", todayIso),
+    supabase.from("hot_leads").select("id", { count: "exact", head: true }),
+  ])
+
+  const fmt = (n: number | null) => (n ?? 0).toLocaleString("vi-VN")
+
+  const KPI = [
+    { label: "Tổng khách hàng", value: fmt(customers.count), icon: Users, hint: customers.count ? "Đã import vào DB" : "Chưa import danh sách" },
+    { label: "Chiến dịch đang chạy", value: fmt(runningCamps.count), icon: Megaphone, hint: "Tạo mới ở tab Chiến dịch" },
+    { label: "Cuộc gọi hôm nay", value: fmt(callsToday.count), icon: PhoneCall, hint: "Cập nhật real-time" },
+    { label: "Lead nóng cần follow", value: fmt(hotLeads.count), icon: Flame, hint: "Khách quan tâm chờ Zalo", accent: "amber" },
+  ]
+
+  const hasData = (customers.count ?? 0) > 0
+
   return (
     <div className="space-y-6 max-w-6xl">
       <header className="flex items-end justify-between flex-wrap gap-4">
@@ -34,7 +53,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* KPI grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
         {KPI.map(({ label, value, icon: Icon, hint, accent }) => (
           <div key={label} className="kpi-card">
@@ -56,7 +74,6 @@ export default function HomePage() {
         ))}
       </section>
 
-      {/* Quick start */}
       <section className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="section-title">Bắt đầu nhanh</h2>
@@ -85,17 +102,18 @@ export default function HomePage() {
         </ol>
       </section>
 
-      {/* Empty state preview */}
-      <section className="card p-6 text-center">
-        <div className="text-3xl mb-2">📊</div>
-        <div className="text-lg font-semibold text-ink-1">Chưa có dữ liệu</div>
-        <div className="text-base text-ink-3 mt-1 mb-4">
-          Sau khi kết nối Supabase + import khách + chạy 1 chiến dịch, biểu đồ kết nối / quan tâm / chi phí sẽ hiện ở đây.
-        </div>
-        <Link href="/customers" className="btn-primary btn-sm inline-flex">
-          <Users size={14} /> Import danh sách khách
-        </Link>
-      </section>
+      {!hasData && (
+        <section className="card p-6 text-center">
+          <div className="text-3xl mb-2">📊</div>
+          <div className="text-lg font-semibold text-ink-1">Chưa có dữ liệu</div>
+          <div className="text-base text-ink-3 mt-1 mb-4">
+            Chạy SQL migration 0002 trên Supabase để có 5 khách + 2 lead nóng mẫu, hoặc Import CSV để bắt đầu.
+          </div>
+          <Link href="/customers" className="btn-primary btn-sm inline-flex">
+            <Users size={14} /> Import danh sách khách
+          </Link>
+        </section>
+      )}
     </div>
   )
 }
