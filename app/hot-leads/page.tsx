@@ -68,7 +68,7 @@ export default async function HotLeadsPage() {
                 <div className="flex-1 min-w-[280px]">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-ink-1">{lead.name ?? "Khách chưa có tên"}</h3>
-                    <span className="font-mono text-base text-ink-2 tabular-nums">
+                    <span className="text-base text-ink-2 tabular-nums tracking-tight">
                       {formatPhone(lead.phone)}
                     </span>
                     <span className="badge bg-warn-bg text-warn-tx text-xs">Rất quan tâm</span>

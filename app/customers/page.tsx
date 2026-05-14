@@ -100,7 +100,9 @@ export default async function CustomersPage() {
                     <td className="px-4 py-3 text-base text-ink-1 font-medium">
                       {c.name || <span className="text-ink-hint">—</span>}
                     </td>
-                    <td className="px-4 py-3 font-mono text-base tabular-nums text-ink-1">{formatPhone(c.phone)}</td>
+                    <td className="px-4 py-3 text-base tabular-nums tracking-tight text-ink-1 font-medium">
+                      {formatPhone(c.phone)}
+                    </td>
                     <td className="px-4 py-3 text-base text-ink-2">
                       {c.project_interest || <span className="text-ink-hint">—</span>}
                     </td>
