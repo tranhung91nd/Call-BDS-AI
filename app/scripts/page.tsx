@@ -1,5 +1,6 @@
-import { Plus, FileText, Copy, Edit2, Mic } from "lucide-react"
+import { FileText, Mic } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { AddScriptButton, EditScriptButton } from "@/components/script-actions"
 
 export const revalidate = 0
 
@@ -51,9 +52,7 @@ export default async function ScriptsPage() {
             để tự động cá nhân hoá.
           </p>
         </div>
-        <button className="btn-primary btn-sm">
-          <Plus size={14} /> Tạo kịch bản
-        </button>
+        <AddScriptButton />
       </header>
 
       {items.length === 0 ? (
@@ -68,7 +67,7 @@ export default async function ScriptsPage() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             {items.map((s) => (
-              <div key={s.id} className="card p-4 hover:shadow-md transition-shadow">
+              <div key={s.id} className="card p-4 hover:shadow-md transition-shadow flex flex-col">
                 <div className="flex items-start gap-2.5">
                   <div className="w-9 h-9 shrink-0 rounded-[10px] bg-brand-blue-bg text-brand-blue-tx flex items-center justify-center">
                     <FileText size={16} strokeWidth={1.8} />
@@ -86,6 +85,9 @@ export default async function ScriptsPage() {
                   </span>
                   <span>Lần cuối: {formatDate(s.created_at)}</span>
                 </div>
+                <div className="mt-3">
+                  <EditScriptButton script={s} />
+                </div>
               </div>
             ))}
           </div>
@@ -97,14 +99,7 @@ export default async function ScriptsPage() {
                   <h3 className="section-title">{sample.name}</h3>
                   <div className="text-xs text-ink-3 mt-0.5">Xem trước nội dung AI sẽ đọc</div>
                 </div>
-                <div className="flex gap-2">
-                  <button className="btn-ghost btn-sm">
-                    <Copy size={13} /> Copy
-                  </button>
-                  <button className="btn-ghost btn-sm">
-                    <Edit2 size={13} /> Chỉnh sửa
-                  </button>
-                </div>
+                <EditScriptButton script={sample} />
               </div>
               <pre className="text-base text-ink-2 whitespace-pre-wrap bg-surface-2/60 p-4 rounded-[12px] border border-line-1 leading-relaxed font-sans">
 {sample.content}

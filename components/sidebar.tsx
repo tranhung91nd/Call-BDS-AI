@@ -10,17 +10,19 @@ import {
   Flame,
   BarChart3,
   LogOut,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboard },
-  { href: "/customers", label: "Khách hàng", icon: Users, badge: "1.000" },
+  { href: "/customers", label: "Khách hàng", icon: Users },
   { href: "/campaigns", label: "Chiến dịch", icon: Megaphone },
   { href: "/scripts", label: "Kịch bản", icon: FileText },
-  { href: "/hot-leads", label: "Lead nóng", icon: Flame, badge: "2", alert: true },
+  { href: "/hot-leads", label: "Lead nóng", icon: Flame },
   { href: "/reports", label: "Báo cáo", icon: BarChart3 },
-]
+  { href: "/settings", label: "Cài đặt", icon: Settings },
+] as { href: string; label: string; icon: typeof LayoutDashboard; badge?: string; alert?: boolean }[]
 
 export function Sidebar() {
   const pathname = usePathname()

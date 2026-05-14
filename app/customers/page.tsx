@@ -1,7 +1,8 @@
-import { Upload, Plus, Search, Filter, Phone } from "lucide-react"
+import { Upload, Search, Filter } from "lucide-react"
 import { formatPhone } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
+import { AddCustomerButton, EditCustomerButton } from "@/components/customer-actions"
 
 export const revalidate = 0
 
@@ -46,12 +47,10 @@ export default async function CustomersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-ghost btn-sm">
+          <button className="btn-ghost btn-sm" disabled title="Sẽ làm ở pha tiếp theo">
             <Upload size={14} /> Import CSV
           </button>
-          <button className="btn-primary btn-sm">
-            <Plus size={14} /> Thêm khách
-          </button>
+          <AddCustomerButton />
         </div>
       </header>
 
@@ -124,9 +123,7 @@ export default async function CustomersPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button className="inline-flex items-center gap-1.5 text-brand-blue-tx hover:underline text-sm font-medium">
-                        <Phone size={12} /> Sửa
-                      </button>
+                      <EditCustomerButton customer={c} />
                     </td>
                   </tr>
                 ))
