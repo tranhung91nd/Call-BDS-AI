@@ -27,11 +27,14 @@ export default async function CustomersPage() {
   const supabase = createClient()
   const { data: customers, error } = await supabase
     .from("customers")
-    .select("id, phone, name, project_interest, source, status, created_at")
+    .select("id, phone, name, project_interest, source, status, notes, created_at")
     .order("created_at", { ascending: false })
     .limit(200)
 
-  const rows = (customers ?? []) as Pick<Customer, "id" | "phone" | "name" | "project_interest" | "source" | "status">[]
+  const rows = (customers ?? []) as Pick<
+    Customer,
+    "id" | "phone" | "name" | "project_interest" | "source" | "status" | "notes"
+  >[]
 
   return (
     <div className="space-y-5 max-w-7xl">
@@ -73,32 +76,52 @@ export default async function CustomersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-line-2 bg-surface-2/40">
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">SĐT</th>
+                <th className="text-left px-3 py-3 text-xs font-bold uppercase tracking-wider text-ink-1 w-14">STT</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Tên khách</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">SĐT</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Dự án quan tâm</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Nguồn</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Trạng thái</th>
+                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1 min-w-[200px]">Ghi chú</th>
                 <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1"></th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-ink-3 text-base">
+                  <td colSpan={8} className="px-4 py-12 text-center text-ink-3 text-base">
                     {error ? `Lỗi: ${error.message}` : "Chưa có khách nào — chạy SQL seed 0002 hoặc Import CSV để thêm."}
                   </td>
                 </tr>
               ) : (
-                rows.map((c) => (
+                rows.map((c, idx) => (
                   <tr key={c.id} className="border-b border-line-1 last:border-0 hover:bg-surface-2/60 transition-colors">
-                    <td className="px-4 py-3 font-mono text-base tabular-nums text-ink-1">{formatPhone(c.phone)}</td>
-                    <td className="px-4 py-3 text-base text-ink-1 font-medium">{c.name || <span className="text-ink-hint">—</span>}</td>
-                    <td className="px-4 py-3 text-base text-ink-2">{c.project_interest || <span className="text-ink-hint">—</span>}</td>
-                    <td className="px-4 py-3 text-sm text-ink-3">{c.source || <span className="text-ink-hint">—</span>}</td>
-                    <td className="px-4 py-3">
-                      <span className={STATUS_BADGE[c.status] ?? "b-gray"}>{STATUS_LABEL[c.status] ?? c.status}</span>
+                    <td className="px-3 py-3 text-sm text-ink-3 tabular-nums">{idx + 1}</td>
+                    <td className="px-4 py-3 text-base text-ink-1 font-medium">
+                      {c.name || <span className="text-ink-hint">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 font-mono text-base tabular-nums text-ink-1">{formatPhone(c.phone)}</td>
+                    <td className="px-4 py-3 text-base text-ink-2">
+                      {c.project_interest || <span className="text-ink-hint">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-ink-3">
+                      {c.source || <span className="text-ink-hint">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={STATUS_BADGE[c.status] ?? "b-gray"}>
+                        {STATUS_LABEL[c.status] ?? c.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-ink-2 max-w-[280px]">
+                      {c.notes ? (
+                        <span className="line-clamp-2" title={c.notes}>
+                          {c.notes}
+                        </span>
+                      ) : (
+                        <span className="text-ink-hint">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
                       <button className="inline-flex items-center gap-1.5 text-brand-blue-tx hover:underline text-sm font-medium">
                         <Phone size={12} /> Sửa
                       </button>

@@ -24,6 +24,7 @@ export type Customer = {
   status: CustomerStatus
   do_not_call: boolean
   last_contact_at: string | null
+  notes: string | null
   created_at: string
 }
 
