@@ -21,9 +21,10 @@ drop policy if exists "anon write app_settings" on public.app_settings;
 create policy "anon write app_settings" on public.app_settings
   for all using (true) with check (true);
 
--- Khoá mặc định cho VBee — chưa có value, user nhập trên UI Cài đặt
+-- Khoá mặc định cho VBee — user nhập value chính xác trên UI Cài đặt
+-- sau khi đăng ký tại https://aicall.vbee.ai và lấy info từ dashboard
 insert into public.app_settings (key, value, is_secret) values
-  ('vbee_api_url',       'https://callbot-prod.vbee.vn/api/v1', false),
+  ('vbee_api_url',       null, false),
   ('vbee_api_key',       null, true),
   ('vbee_webhook_secret',null, true),
   ('vbee_voice_id',      'hcm-diemmy', false)

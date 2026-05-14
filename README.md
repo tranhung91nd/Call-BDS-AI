@@ -28,7 +28,7 @@ npm run dev
 
 ## Tích hợp VBee AICall
 
-1. Đăng ký tài khoản: https://aicall.vbee.vn
+1. Đăng ký tài khoản: https://aicall.vbee.ai
 2. Tạo bot tiếng Việt + chọn giọng đọc.
 3. Lấy API key → điền `VBEE_API_KEY` vào `.env.local`.
 4. Cấu hình webhook về `<domain>/api/webhooks/vbee` để nhận kết quả gọi (sẽ làm ở pha 2).

@@ -24,15 +24,15 @@ const VBEE_FIELDS: Field[] = [
     key: "vbee_api_url",
     label: "VBee API URL",
     type: "url",
-    placeholder: "https://callbot-prod.vbee.vn/api/v1",
-    hint: "Endpoint REST của VBee AICall, giữ mặc định trừ khi VBee đổi domain.",
+    placeholder: "https://api.vbee.ai/...",
+    hint: "Endpoint REST chính xác lấy từ dashboard VBee → Developer / API Docs sau khi đăng ký.",
   },
   {
     key: "vbee_api_key",
     label: "VBee API Key",
     type: "secret",
     placeholder: "Dán API key từ dashboard VBee...",
-    hint: "Vào aicall.vbee.vn → Settings → API Keys.",
+    hint: "Vào aicall.vbee.ai → Settings → API Keys.",
   },
   {
     key: "vbee_webhook_secret",
@@ -94,12 +94,12 @@ export function SettingsForm({ initial }: { initial: SettingRow[] }) {
             <div className="text-sm text-ink-3">
               Provider gọi tự động bằng AI tiếng Việt. Đăng ký tại{" "}
               <a
-                href="https://aicall.vbee.vn"
+                href="https://aicall.vbee.ai"
                 target="_blank"
                 rel="noreferrer"
                 className="text-brand-blue-tx hover:underline"
               >
-                aicall.vbee.vn
+                aicall.vbee.ai
               </a>
             </div>
           </div>
