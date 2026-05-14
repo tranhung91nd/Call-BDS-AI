@@ -2,16 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #f8fafc;
-  --fg: #0f172a;
-}
-
-html, body {
-  background: var(--bg);
-  color: var(--fg);
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(180deg, #f7f9fc 0%, #f2f5fa 100%);
+  color: #0f172a;
+  line-height: 1.45;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.16);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(15,23,42,0.22); background-clip: padding-box; }
+
+@layer components {
+  .card {
+    @apply bg-surface-1 border border-line-1 rounded-[12px] shadow-sm;
+  }
+  .kpi-card {
+    @apply card p-[14px_16px];
+  }
+  .kpi-label {
+    @apply text-xs text-ink-3 uppercase tracking-wider;
+  }
+  .kpi-value {
+    @apply text-2xl font-semibold mt-0.5 tabular-nums text-ink-1;
+  }
+  .kpi-note {
+    @apply text-xs text-ink-3 mt-0.5;
+  }
+  .page-title {
+    @apply text-[20px] font-semibold text-ink-1 tracking-tight;
+  }
+  .page-sub {
+    @apply text-base text-ink-3 mt-1;
+  }
+  .section-title {
+    @apply text-md font-semibold text-ink-1;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-[12px] text-base font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97];
+  }
+  .btn-primary {
+    @apply btn bg-brand-blue text-white hover:opacity-90 shadow-sm;
+  }
+  .btn-ghost {
+    @apply btn bg-surface-1 text-ink-2 border border-line-2 hover:bg-surface-2;
+  }
+  .btn-green {
+    @apply btn bg-ok text-white hover:opacity-90 shadow-sm;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-[10px] text-xs font-medium;
+  }
+  .b-blue   { @apply badge bg-brand-blue-bg text-brand-blue-tx; }
+  .b-green  { @apply badge bg-ok-bg text-ok-tx; }
+  .b-amber  { @apply badge bg-warn-bg text-warn-tx; }
+  .b-red    { @apply badge bg-danger-bg text-danger-tx; }
+  .b-purple { @apply badge bg-accent-purple-bg text-accent-purple-tx; }
+  .b-pink   { @apply badge bg-accent-pink-bg text-accent-pink-tx; }
+  .b-gray   { @apply badge bg-surface-3 text-ink-3; }
 }

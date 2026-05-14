@@ -15,9 +15,9 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body>
-        <div className="flex min-h-screen">
+        <div className="grid grid-cols-[240px_1fr] min-h-screen">
           <Sidebar />
-          <main className="flex-1 p-6 max-w-7xl">{children}</main>
+          <main className="px-7 py-6 overflow-x-hidden">{children}</main>
         </div>
       </body>
     </html>
