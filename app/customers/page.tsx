@@ -1,4 +1,5 @@
-import { Upload, Search, Filter, AlertTriangle } from "lucide-react"
+import Link from "next/link"
+import { Upload, Search, Filter, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"
 import { formatPhone, detectPhoneError } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
@@ -24,44 +25,28 @@ const STATUS_LABEL: Record<string, string> = {
   khong_nghe: "Không nghe máy",
 }
 
-export default async function CustomersPage() {
+const PAGE_SIZE = 100
+
+export default async function CustomersPage({
+  searchParams,
+}: {
+  searchParams: { page?: string }
+}) {
   const supabase = createClient()
   const SELECT_COLS =
     "id, phone, phone_secondary, name, address, email, project_interest, source, status, notes, created_at"
 
-  // PostgREST default max-rows = 1000. Fetch theo batch để lấy đủ data hiện tại (~2k row).
-  const PAGE_SIZE = 1000
-  const MAX_PAGES = 5 // hard cap an toàn (5k row), pha sau làm pagination thật
-  const first = await supabase
+  const page = Math.max(1, Number(searchParams.page) || 1)
+  const from = (page - 1) * PAGE_SIZE
+  const to = from + PAGE_SIZE - 1
+
+  const { data: customers, error, count } = await supabase
     .from("customers")
     .select(SELECT_COLS, { count: "exact" })
     .order("created_at", { ascending: false })
-    .range(0, PAGE_SIZE - 1)
+    .range(from, to)
 
-  let customers = first.data ?? []
-  const error = first.error
-  const count = first.count
-  if (!error && count && customers.length < count) {
-    const totalPages = Math.min(MAX_PAGES, Math.ceil(count / PAGE_SIZE))
-    const restRanges: [number, number][] = []
-    for (let p = 1; p < totalPages; p++) {
-      restRanges.push([p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE - 1])
-    }
-    const rest = await Promise.all(
-      restRanges.map(([from, to]) =>
-        supabase
-          .from("customers")
-          .select(SELECT_COLS)
-          .order("created_at", { ascending: false })
-          .range(from, to),
-      ),
-    )
-    for (const r of rest) {
-      if (r.data) customers = customers.concat(r.data)
-    }
-  }
-
-  const rows = customers as Pick<
+  const rows = (customers ?? []) as Pick<
     Customer,
     | "id"
     | "phone"
@@ -75,6 +60,8 @@ export default async function CustomersPage() {
     | "notes"
   >[]
   const totalCount = count ?? rows.length
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
 
   return (
     <div className="space-y-5 max-w-7xl">
@@ -85,9 +72,7 @@ export default async function CustomersPage() {
             Quản lý danh sách khách BĐS có SĐT để AI gọi.{" "}
             {error
               ? "(lỗi tải data)"
-              : totalCount > rows.length
-                ? `Hiện có ${totalCount.toLocaleString("vi-VN")} khách — hiển thị ${rows.length.toLocaleString("vi-VN")} dòng đầu.`
-                : `Hiện có ${totalCount.toLocaleString("vi-VN")} khách.`}
+              : `Tổng ${totalCount.toLocaleString("vi-VN")} khách · Trang ${currentPage}/${totalPages}.`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -149,7 +134,7 @@ export default async function CustomersPage() {
                           : "border-b border-line-1 last:border-0 hover:bg-surface-2/60 transition-colors"
                       }
                     >
-                      <td className="px-3 py-3 text-sm text-ink-3 tabular-nums">{idx + 1}</td>
+                      <td className="px-3 py-3 text-sm text-ink-3 tabular-nums">{from + idx + 1}</td>
                       <td className="px-4 py-3 text-base text-ink-1 font-medium">
                         {c.name || <span className="text-ink-hint">—</span>}
                       </td>
@@ -234,7 +219,107 @@ export default async function CustomersPage() {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <Pagination currentPage={currentPage} totalPages={totalPages} totalCount={totalCount} pageSize={PAGE_SIZE} from={from} shown={rows.length} />
+        )}
       </div>
     </div>
   )
+}
+
+function Pagination({
+  currentPage,
+  totalPages,
+  totalCount,
+  pageSize,
+  from,
+  shown,
+}: {
+  currentPage: number
+  totalPages: number
+  totalCount: number
+  pageSize: number
+  from: number
+  shown: number
+}) {
+  const pages = buildPageList(currentPage, totalPages)
+  const showStart = from + 1
+  const showEnd = from + shown
+  return (
+    <div className="border-t border-line-1 px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+      <div className="text-xs text-ink-3 tabular-nums">
+        Hiển thị <span className="text-ink-1 font-semibold">{showStart.toLocaleString("vi-VN")}–{showEnd.toLocaleString("vi-VN")}</span>{" "}
+        / {totalCount.toLocaleString("vi-VN")} khách
+      </div>
+      <nav className="flex items-center gap-1 flex-wrap">
+        <PageLink page={currentPage - 1} disabled={currentPage <= 1} label="Trước" icon="prev" />
+        {pages.map((p, idx) =>
+          p === "…" ? (
+            <span key={`gap-${idx}`} className="px-2 text-ink-3 text-sm">
+              …
+            </span>
+          ) : (
+            <PageLink key={p} page={p} active={p === currentPage} label={String(p)} />
+          ),
+        )}
+        <PageLink page={currentPage + 1} disabled={currentPage >= totalPages} label="Sau" icon="next" />
+      </nav>
+    </div>
+  )
+}
+
+function PageLink({
+  page,
+  label,
+  active,
+  disabled,
+  icon,
+}: {
+  page: number
+  label: string
+  active?: boolean
+  disabled?: boolean
+  icon?: "prev" | "next"
+}) {
+  const base =
+    "inline-flex items-center justify-center min-w-[34px] h-8 px-2.5 rounded-[8px] text-sm font-medium transition-colors tabular-nums"
+  if (disabled) {
+    return (
+      <span className={`${base} text-ink-hint border border-line-1 opacity-50 cursor-not-allowed select-none`}>
+        {icon === "prev" && <ChevronLeft size={14} className="mr-0.5" />}
+        {label}
+        {icon === "next" && <ChevronRight size={14} className="ml-0.5" />}
+      </span>
+    )
+  }
+  return (
+    <Link
+      href={`/customers?page=${page}`}
+      className={
+        active
+          ? `${base} bg-brand-blue text-white shadow-sm`
+          : `${base} text-ink-2 border border-line-2 bg-surface-1 hover:bg-surface-2 hover:text-ink-1`
+      }
+      aria-current={active ? "page" : undefined}
+    >
+      {icon === "prev" && <ChevronLeft size={14} className="mr-0.5" />}
+      {label}
+      {icon === "next" && <ChevronRight size={14} className="ml-0.5" />}
+    </Link>
+  )
+}
+
+// Sinh list các số trang để render: luôn show trang đầu, cuối, hiện tại ± 1, các trang khác là "…"
+function buildPageList(current: number, total: number): (number | "…")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const out: (number | "…")[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) out.push("…")
+  for (let p = start; p <= end; p++) out.push(p)
+  if (end < total - 1) out.push("…")
+  out.push(total)
+  return out
 }
