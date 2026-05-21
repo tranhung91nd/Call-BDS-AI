@@ -4,6 +4,7 @@ import { formatPhone, detectPhoneError } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
 import { AddCustomerButton, EditCustomerButton } from "@/components/customer-actions"
+import { EditableCell } from "@/components/editable-cell"
 
 export const revalidate = 0
 
@@ -136,7 +137,12 @@ export default async function CustomersPage({
                     >
                       <td className="px-3 py-3 text-sm text-ink-3 tabular-nums">{from + idx + 1}</td>
                       <td className="px-4 py-3 text-base text-ink-1 font-medium">
-                        {c.name || <span className="text-ink-hint">—</span>}
+                        <EditableCell
+                          rowId={c.id}
+                          field="name"
+                          value={c.name}
+                          placeholder="Nguyễn Văn A"
+                        />
                       </td>
                       <td
                         className={
