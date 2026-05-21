@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Upload, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Upload, Search, Filter, ChevronLeft, ChevronRight, Mail } from "lucide-react"
 import { detectPhoneError } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
@@ -100,7 +100,7 @@ export default async function CustomersPage({
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Tên khách</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">SĐT</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1 min-w-[220px]">Địa chỉ</th>
-                <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Email</th>
+                <th className="text-center px-2 py-3 text-xs font-bold uppercase tracking-wider text-ink-1 w-12">@</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Dự án quan tâm</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1">Trạng thái</th>
                 <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink-1 min-w-[200px]">Ghi chú</th>
@@ -167,14 +167,17 @@ export default async function CustomersPage({
                           placeholder="Số nhà, đường, quận, thành phố"
                         />
                       </td>
-                      <td className="px-4 py-3 text-sm text-ink-2 max-w-[200px]">
-                        <EditableCell
-                          rowId={c.id}
-                          field="email"
-                          value={c.email}
-                          placeholder="email@domain.com"
-                          type="email"
-                        />
+                      <td className="px-2 py-3 text-center w-12">
+                        {c.email ? (
+                          <span
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-blue-bg text-brand-blue-tx cursor-help"
+                            title={c.email}
+                          >
+                            <Mail size={13} strokeWidth={2} />
+                          </span>
+                        ) : (
+                          <span className="text-ink-hint" title="Chưa có email">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-base text-ink-2">
                         <EditableCell
