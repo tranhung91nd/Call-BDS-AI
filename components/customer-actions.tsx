@@ -7,7 +7,16 @@ import type { Customer } from "@/lib/types"
 
 type CustomerInput = Pick<
   Customer,
-  "id" | "name" | "phone" | "project_interest" | "source" | "status" | "notes"
+  | "id"
+  | "name"
+  | "phone"
+  | "phone_secondary"
+  | "address"
+  | "email"
+  | "project_interest"
+  | "source"
+  | "status"
+  | "notes"
 >
 
 export function AddCustomerButton() {

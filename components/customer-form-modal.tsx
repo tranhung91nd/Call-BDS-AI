@@ -9,7 +9,16 @@ import { ModalShell, Field, inputClass } from "./modal-shell"
 
 type CustomerInput = Pick<
   Customer,
-  "id" | "name" | "phone" | "project_interest" | "source" | "status" | "notes"
+  | "id"
+  | "name"
+  | "phone"
+  | "phone_secondary"
+  | "address"
+  | "email"
+  | "project_interest"
+  | "source"
+  | "status"
+  | "notes"
 >
 
 export function CustomerFormModal({
@@ -21,7 +30,10 @@ export function CustomerFormModal({
 }) {
   const isEdit = !!customer?.id
   const [phone, setPhone] = useState(customer?.phone ?? "")
+  const [phoneSecondary, setPhoneSecondary] = useState(customer?.phone_secondary ?? "")
   const [name, setName] = useState(customer?.name ?? "")
+  const [address, setAddress] = useState(customer?.address ?? "")
+  const [email, setEmail] = useState(customer?.email ?? "")
   const [project, setProject] = useState(customer?.project_interest ?? "")
   const [source, setSource] = useState(customer?.source ?? "")
   const [status, setStatus] = useState<CustomerStatus>(customer?.status ?? "chua_goi")
@@ -40,7 +52,10 @@ export function CustomerFormModal({
     const supabase = createClient()
     const payload = {
       phone: phone.trim(),
+      phone_secondary: phoneSecondary.trim() || null,
       name: name.trim() || null,
+      address: address.trim() || null,
+      email: email.trim() || null,
       project_interest: project.trim() || null,
       source: source.trim() || null,
       status,
@@ -75,15 +90,25 @@ export function CustomerFormModal({
       }
     >
       <div className="space-y-3.5">
-        <Field label="SĐT" required>
-          <input
-            className={inputClass}
-            placeholder="0912 345 678"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            disabled={isEdit}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="SĐT" required>
+            <input
+              className={inputClass}
+              placeholder="0912 345 678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={isEdit}
+            />
+          </Field>
+          <Field label="SĐT phụ" hint="Số dự phòng (nếu có).">
+            <input
+              className={inputClass}
+              placeholder="0922 666 636"
+              value={phoneSecondary}
+              onChange={(e) => setPhoneSecondary(e.target.value)}
+            />
+          </Field>
+        </div>
 
         <Field label="Tên khách">
           <input
@@ -91,6 +116,25 @@ export function CustomerFormModal({
             placeholder="Nguyễn Văn A"
             value={name}
             onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+
+        <Field label="Địa chỉ" hint="Địa chỉ liên hệ của khách (không bắt buộc).">
+          <input
+            className={inputClass}
+            placeholder="Số 33 ngõ 64, Nguyễn Lương Bằng, Đống Đa, HN"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </Field>
+
+        <Field label="Email">
+          <input
+            className={inputClass}
+            type="email"
+            placeholder="khachhang@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
 

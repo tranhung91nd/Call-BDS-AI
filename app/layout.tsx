@@ -1,5 +1,5 @@
 import "./globals.css"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Sidebar } from "@/components/sidebar"
 
 // Đặt server function ở Singapore (gần Supabase SG) — giảm latency từ ~250ms → ~30ms/query
@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   description: "CRM gọi tự động bằng AI cho dịch vụ Bất động sản",
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -18,9 +24,9 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body>
-        <div className="grid grid-cols-[240px_1fr] min-h-screen">
+        <div className="md:grid md:grid-cols-[240px_1fr] min-h-screen">
           <Sidebar />
-          <main className="px-7 py-6 overflow-x-hidden">{children}</main>
+          <main className="px-4 py-4 md:px-7 md:py-6 overflow-x-hidden">{children}</main>
         </div>
       </body>
     </html>

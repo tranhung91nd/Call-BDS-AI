@@ -26,6 +26,9 @@ export type Customer = {
   last_contact_at: string | null
   notes: string | null
   created_at: string
+  address: string | null
+  email: string | null
+  phone_secondary: string | null
 }
 
 export type Campaign = {
