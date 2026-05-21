@@ -2,18 +2,73 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Check, X } from "lucide-react"
+import { Loader2, X, AlertTriangle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { formatPhone, detectPhoneError } from "@/lib/utils"
+import { CUSTOMER_STATUS_LABEL, type CustomerStatus } from "@/lib/types"
+
+type Option = { value: string; label: string }
 
 type Props = {
   rowId: string
-  field: "name" | "phone_secondary" | "address" | "email" | "project_interest"
+  field: string
   value: string | null
   placeholder?: string
-  className?: string
   emptyLabel?: string
   multiline?: boolean
-  formatValue?: (v: string) => string  // hiển thị format khác lúc đọc (vd SĐT)
+  type?: "text" | "email" | "tel"
+  options?: Option[]
+  // Format/render là string flag để truyền được qua Server → Client Component.
+  formatAs?: "phone"
+  renderAs?: "status-badge" | "notes-with-error"
+  className?: string
+}
+
+const STATUS_BADGE_CLASS: Record<string, string> = {
+  chua_goi: "b-gray",
+  da_goi: "b-blue",
+  quan_tam: "b-green",
+  khong_quan_tam: "b-red",
+  goi_lai: "b-amber",
+  khong_nghe: "b-purple",
+}
+
+function formatValueByFlag(v: string, flag?: "phone"): string {
+  if (flag === "phone") return formatPhone(v)
+  return v
+}
+
+function renderByFlag(v: string | null, flag?: "status-badge" | "notes-with-error", emptyLabel = "—") {
+  if (flag === "status-badge") {
+    if (!v) return <span className="text-ink-hint">{emptyLabel}</span>
+    const cls = STATUS_BADGE_CLASS[v] ?? "b-gray"
+    const label = CUSTOMER_STATUS_LABEL[v as CustomerStatus] ?? v
+    return <span className={cls}>{label}</span>
+  }
+  if (flag === "notes-with-error") {
+    if (!v) return <span className="text-ink-hint">{emptyLabel}</span>
+    const e = detectPhoneError(v)
+    if (!e.isError) {
+      return <span className="text-ink-2 line-clamp-2" title={v}>{v}</span>
+    }
+    return (
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[8px] bg-danger text-white text-xs font-semibold">
+          <AlertTriangle size={11} strokeWidth={2.2} />
+          LỖI SĐT
+        </div>
+        <div className="text-danger-tx font-medium line-clamp-2" title={e.errorMsg ?? undefined}>
+          {e.errorMsg}
+        </div>
+        {e.cleanNote && (
+          <div className="text-ink-3 line-clamp-2" title={e.cleanNote}>
+            {e.cleanNote}
+          </div>
+        )}
+      </div>
+    )
+  }
+  return null
 }
 
 export function EditableCell({
@@ -21,10 +76,13 @@ export function EditableCell({
   field,
   value,
   placeholder = "—",
-  className = "",
   emptyLabel = "—",
   multiline = false,
-  formatValue,
+  type = "text",
+  options,
+  formatAs,
+  renderAs,
+  className = "",
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value ?? "")
@@ -32,7 +90,7 @@ export function EditableCell({
   const [error, setError] = useState<string | null>(null)
   const [localValue, setLocalValue] = useState(value)
   const router = useRouter()
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>(null)
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -43,7 +101,6 @@ export function EditableCell({
     }
   }, [editing])
 
-  // Đồng bộ khi prop value thay đổi từ server (router.refresh)
   useEffect(() => {
     setLocalValue(value)
     setDraft(value ?? "")
@@ -61,8 +118,9 @@ export function EditableCell({
     setDraft(localValue ?? "")
   }
 
-  const save = async () => {
-    const next = draft.trim() || null
+  const save = async (overrideValue?: string) => {
+    const raw = overrideValue !== undefined ? overrideValue : draft
+    const next = raw.trim() || null
     if (next === (localValue ?? null)) {
       setEditing(false)
       return
@@ -76,7 +134,11 @@ export function EditableCell({
       .eq("id", rowId)
     setSaving(false)
     if (e) {
-      setError(e.message)
+      if (e.code === "23505" || /unique|duplicate/i.test(e.message)) {
+        setError("SĐT đã tồn tại ở khách khác")
+      } else {
+        setError(e.message)
+      }
       return
     }
     setLocalValue(next)
@@ -102,16 +164,36 @@ export function EditableCell({
       "w-full px-2 py-1 text-base bg-surface-1 border border-brand-blue rounded-[6px] outline-none focus:ring-2 focus:ring-brand-blue/30"
     return (
       <div className="relative">
-        {multiline ? (
+        {options ? (
+          <select
+            ref={inputRef as React.RefObject<HTMLSelectElement>}
+            className={baseInput}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              save(e.target.value)
+            }}
+            onKeyDown={onKeyDown}
+            onBlur={() => !saving && cancelEdit()}
+            disabled={saving}
+          >
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        ) : multiline ? (
           <textarea
             ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            className={`${baseInput} resize-none min-h-[60px]`}
+            className={`${baseInput} resize-y min-h-[80px]`}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
-            onBlur={save}
+            onBlur={() => save()}
             disabled={saving}
             placeholder={placeholder}
+            rows={4}
           />
         ) : (
           <input
@@ -120,10 +202,10 @@ export function EditableCell({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
-            onBlur={save}
+            onBlur={() => save()}
             disabled={saving}
             placeholder={placeholder}
-            type={field === "email" ? "email" : "text"}
+            type={type}
           />
         )}
         {saving && (
@@ -134,15 +216,21 @@ export function EditableCell({
             <X size={11} /> {error}
           </div>
         )}
+        {multiline && !error && (
+          <div className="mt-1 text-[10px] text-ink-hint">⌘/Ctrl + Enter để lưu · Esc huỷ</div>
+        )}
       </div>
     )
   }
 
-  const display = localValue
-    ? formatValue
-      ? formatValue(localValue)
-      : localValue
-    : null
+  let display: React.ReactNode
+  if (renderAs) {
+    display = renderByFlag(localValue, renderAs, emptyLabel)
+  } else if (localValue) {
+    display = formatValueByFlag(localValue, formatAs)
+  } else {
+    display = <span className="text-ink-hint">{emptyLabel}</span>
+  }
 
   return (
     <button
@@ -151,7 +239,7 @@ export function EditableCell({
       className={`group/cell text-left w-full px-2 py-1 -mx-2 -my-1 rounded-[6px] hover:bg-brand-blue-bg/60 cursor-text transition-colors ${className}`}
       title="Click để sửa"
     >
-      {display ?? <span className="text-ink-hint group-hover/cell:text-ink-3">{emptyLabel}</span>}
+      {display}
     </button>
   )
 }

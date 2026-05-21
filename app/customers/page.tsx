@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { Upload, Search, Filter, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react"
-import { formatPhone, detectPhoneError } from "@/lib/utils"
+import { Upload, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { detectPhoneError } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
 import { AddCustomerButton, EditCustomerButton } from "@/components/customer-actions"
@@ -8,23 +8,14 @@ import { EditableCell } from "@/components/editable-cell"
 
 export const revalidate = 0
 
-const STATUS_BADGE: Record<string, string> = {
-  chua_goi: "b-gray",
-  da_goi: "b-blue",
-  quan_tam: "b-green",
-  khong_quan_tam: "b-red",
-  goi_lai: "b-amber",
-  khong_nghe: "b-purple",
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  chua_goi: "Chưa gọi",
-  da_goi: "Đã gọi",
-  quan_tam: "Quan tâm",
-  khong_quan_tam: "Không quan tâm",
-  goi_lai: "Gọi lại sau",
-  khong_nghe: "Không nghe máy",
-}
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "chua_goi", label: "Chưa gọi" },
+  { value: "da_goi", label: "Đã gọi" },
+  { value: "quan_tam", label: "Quan tâm" },
+  { value: "khong_quan_tam", label: "Không quan tâm" },
+  { value: "goi_lai", label: "Gọi lại sau" },
+  { value: "khong_nghe", label: "Không nghe máy" },
+]
 
 const PAGE_SIZE = 100
 
@@ -144,76 +135,73 @@ export default async function CustomersPage({
                           placeholder="Nguyễn Văn A"
                         />
                       </td>
-                      <td
-                        className={
-                          err.isError
-                            ? "px-4 py-3 text-base tabular-nums tracking-tight"
-                            : "px-4 py-3 text-base tabular-nums tracking-tight"
-                        }
-                        title={err.isError ? c.phone : undefined}
-                      >
-                        <div className={err.isError ? "text-danger-tx font-semibold" : "text-ink-1 font-medium"}>
-                          {err.isError ? c.phone : formatPhone(c.phone)}
+                      <td className="px-4 py-3 text-base tabular-nums tracking-tight" title={err.isError ? c.phone : undefined}>
+                        <EditableCell
+                          rowId={c.id}
+                          field="phone"
+                          value={c.phone}
+                          placeholder="0912 345 678"
+                          type="tel"
+                          className={err.isError ? "text-danger-tx font-semibold" : "text-ink-1 font-medium"}
+                          formatAs={err.isError ? undefined : "phone"}
+                        />
+                        <div className="text-xs text-ink-3 mt-0.5 flex items-center gap-1">
+                          <span className="text-ink-hint">+</span>
+                          <EditableCell
+                            rowId={c.id}
+                            field="phone_secondary"
+                            value={c.phone_secondary}
+                            placeholder="0922 666 636"
+                            emptyLabel="thêm SĐT phụ"
+                            type="tel"
+                            formatAs="phone"
+                            className="text-ink-3"
+                          />
                         </div>
-                        {c.phone_secondary && (
-                          <div className="text-xs text-ink-3 mt-0.5 flex items-center gap-1">
-                            <span className="text-ink-hint">+</span>
-                            {formatPhone(c.phone_secondary)}
-                          </div>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-ink-2 max-w-[280px]">
-                        {c.address ? (
-                          <span className="line-clamp-2" title={c.address}>
-                            {c.address}
-                          </span>
-                        ) : (
-                          <span className="text-ink-hint">—</span>
-                        )}
+                        <EditableCell
+                          rowId={c.id}
+                          field="address"
+                          value={c.address}
+                          placeholder="Số nhà, đường, quận, thành phố"
+                        />
                       </td>
-                      <td className="px-4 py-3 text-sm text-ink-2">
-                        {c.email ? (
-                          <span className="truncate block max-w-[180px]" title={c.email}>
-                            {c.email}
-                          </span>
-                        ) : (
-                          <span className="text-ink-hint">—</span>
-                        )}
+                      <td className="px-4 py-3 text-sm text-ink-2 max-w-[200px]">
+                        <EditableCell
+                          rowId={c.id}
+                          field="email"
+                          value={c.email}
+                          placeholder="email@domain.com"
+                          type="email"
+                        />
                       </td>
                       <td className="px-4 py-3 text-base text-ink-2">
-                        {c.project_interest || <span className="text-ink-hint">—</span>}
+                        <EditableCell
+                          rowId={c.id}
+                          field="project_interest"
+                          value={c.project_interest}
+                          placeholder="Royal City"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        <span className={STATUS_BADGE[c.status] ?? "b-gray"}>
-                          {STATUS_LABEL[c.status] ?? c.status}
-                        </span>
+                        <EditableCell
+                          rowId={c.id}
+                          field="status"
+                          value={c.status}
+                          options={STATUS_OPTIONS}
+                          renderAs="status-badge"
+                        />
                       </td>
                       <td className="px-4 py-3 text-sm max-w-[280px]">
-                        {err.isError ? (
-                          <div className="space-y-1">
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[8px] bg-danger text-white text-xs font-semibold">
-                              <AlertTriangle size={11} strokeWidth={2.2} />
-                              LỖI SĐT
-                            </div>
-                            <div
-                              className="text-danger-tx font-medium line-clamp-2"
-                              title={err.errorMsg ?? undefined}
-                            >
-                              {err.errorMsg}
-                            </div>
-                            {err.cleanNote && (
-                              <div className="text-ink-3 line-clamp-2" title={err.cleanNote}>
-                                {err.cleanNote}
-                              </div>
-                            )}
-                          </div>
-                        ) : c.notes ? (
-                          <span className="text-ink-2 line-clamp-2" title={c.notes}>
-                            {c.notes}
-                          </span>
-                        ) : (
-                          <span className="text-ink-hint">—</span>
-                        )}
+                        <EditableCell
+                          rowId={c.id}
+                          field="notes"
+                          value={c.notes}
+                          placeholder="Ghi chú nội bộ — sale tự nhập..."
+                          multiline
+                          renderAs="notes-with-error"
+                        />
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <EditCustomerButton customer={c} />
