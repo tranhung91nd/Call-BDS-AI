@@ -1,11 +1,12 @@
 import Link from "next/link"
-import { Upload, Search, Filter, ChevronLeft, ChevronRight, Mail } from "lucide-react"
+import { Upload, Filter, ChevronLeft, ChevronRight, Mail } from "lucide-react"
 import { detectPhoneError } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
 import { AddCustomerButton, EditCustomerButton } from "@/components/customer-actions"
 import { EditableCell } from "@/components/editable-cell"
 import { StatusFilter } from "@/components/status-filter"
+import { SearchInput } from "@/components/search-input"
 
 const VALID_STATUSES = new Set([
   "chua_goi",
@@ -33,7 +34,7 @@ const PAGE_SIZE = 100
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: { page?: string; status?: string }
+  searchParams: { page?: string; status?: string; q?: string }
 }) {
   const supabase = createClient()
   const SELECT_COLS =
@@ -43,6 +44,9 @@ export default async function CustomersPage({
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
   const statusFilter = searchParams.status && VALID_STATUSES.has(searchParams.status) ? searchParams.status : null
+  // Sanitize: ký tự đặc biệt của PostgREST .or() là dấu phẩy + dấu ngoặc → strip
+  const rawQ = (searchParams.q ?? "").trim()
+  const q = rawQ.replace(/[,()*]/g, "").slice(0, 100)
 
   let query = supabase
     .from("customers")
@@ -50,6 +54,12 @@ export default async function CustomersPage({
     .order("created_at", { ascending: false })
     .range(from, to)
   if (statusFilter) query = query.eq("status", statusFilter)
+  if (q) {
+    const p = `%${q}%`
+    query = query.or(
+      `name.ilike.${p},phone.ilike.${p},phone_secondary.ilike.${p},email.ilike.${p},address.ilike.${p}`,
+    )
+  }
 
   const { data: customers, error, count } = await query
 
@@ -77,11 +87,18 @@ export default async function CustomersPage({
           <h1 className="page-title">Khách hàng</h1>
           <p className="page-sub">
             Quản lý danh sách khách BĐS có SĐT để AI gọi.{" "}
-            {error
-              ? "(lỗi tải data)"
-              : statusFilter
-                ? `Lọc theo ${STATUS_LABEL_MAP[statusFilter] ?? statusFilter}: ${totalCount.toLocaleString("vi-VN")} khách · Trang ${currentPage}/${totalPages}.`
-                : `Tổng ${totalCount.toLocaleString("vi-VN")} khách · Trang ${currentPage}/${totalPages}.`}
+            {error ? (
+              "(lỗi tải data)"
+            ) : (
+              <>
+                {q || statusFilter ? "Lọc: " : "Tổng "}
+                <span className="font-semibold text-ink-2">{totalCount.toLocaleString("vi-VN")} khách</span>
+                {q && <> · từ khoá &ldquo;{q}&rdquo;</>}
+                {statusFilter && <> · {STATUS_LABEL_MAP[statusFilter] ?? statusFilter}</>}
+                {totalPages > 1 && ` · Trang ${currentPage}/${totalPages}`}
+                .
+              </>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -93,13 +110,7 @@ export default async function CustomersPage({
       </header>
 
       <div className="card p-3 flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
-          <input
-            placeholder="Tìm theo SĐT hoặc tên..."
-            className="w-full pl-9 pr-3 py-2 text-base bg-surface-2 border border-line-2 rounded-[10px] outline-none focus:border-brand-blue transition-colors"
-          />
-        </div>
+        <SearchInput />
         <StatusFilter />
         <button className="btn-ghost btn-sm" disabled title="Sẽ làm sau">
           <Filter size={14} /> Dự án
@@ -240,6 +251,7 @@ export default async function CustomersPage({
             from={from}
             shown={rows.length}
             statusFilter={statusFilter}
+            q={q}
           />
         )}
       </div>
@@ -247,10 +259,11 @@ export default async function CustomersPage({
   )
 }
 
-function buildPageHref(page: number, statusFilter: string | null) {
+function buildPageHref(page: number, statusFilter: string | null, q: string) {
   const sp = new URLSearchParams()
   sp.set("page", String(page))
   if (statusFilter) sp.set("status", statusFilter)
+  if (q) sp.set("q", q)
   return `/customers?${sp.toString()}`
 }
 
@@ -262,6 +275,7 @@ function Pagination({
   from,
   shown,
   statusFilter,
+  q,
 }: {
   currentPage: number
   totalPages: number
@@ -270,6 +284,7 @@ function Pagination({
   from: number
   shown: number
   statusFilter: string | null
+  q: string
 }) {
   const pages = buildPageList(currentPage, totalPages)
   const showStart = from + 1
@@ -281,17 +296,17 @@ function Pagination({
         / {totalCount.toLocaleString("vi-VN")} khách
       </div>
       <nav className="flex items-center gap-1 flex-wrap">
-        <PageLink href={buildPageHref(currentPage - 1, statusFilter)} disabled={currentPage <= 1} label="Trước" icon="prev" />
+        <PageLink href={buildPageHref(currentPage - 1, statusFilter, q)} disabled={currentPage <= 1} label="Trước" icon="prev" />
         {pages.map((p, idx) =>
           p === "…" ? (
             <span key={`gap-${idx}`} className="px-2 text-ink-3 text-sm">
               …
             </span>
           ) : (
-            <PageLink key={p} href={buildPageHref(p, statusFilter)} active={p === currentPage} label={String(p)} />
+            <PageLink key={p} href={buildPageHref(p, statusFilter, q)} active={p === currentPage} label={String(p)} />
           ),
         )}
-        <PageLink href={buildPageHref(currentPage + 1, statusFilter)} disabled={currentPage >= totalPages} label="Sau" icon="next" />
+        <PageLink href={buildPageHref(currentPage + 1, statusFilter, q)} disabled={currentPage >= totalPages} label="Sau" icon="next" />
       </nav>
     </div>
   )
