@@ -5,6 +5,16 @@ import { createClient } from "@/lib/supabase/server"
 import type { Customer } from "@/lib/types"
 import { AddCustomerButton, EditCustomerButton } from "@/components/customer-actions"
 import { EditableCell } from "@/components/editable-cell"
+import { StatusFilter } from "@/components/status-filter"
+
+const VALID_STATUSES = new Set([
+  "chua_goi",
+  "da_goi",
+  "quan_tam",
+  "khong_quan_tam",
+  "goi_lai",
+  "khong_nghe",
+])
 
 export const revalidate = 0
 
@@ -16,13 +26,14 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "goi_lai", label: "Gọi lại sau" },
   { value: "khong_nghe", label: "Không nghe máy" },
 ]
+const STATUS_LABEL_MAP: Record<string, string> = Object.fromEntries(STATUS_OPTIONS.map((o) => [o.value, o.label]))
 
 const PAGE_SIZE = 100
 
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: { page?: string }
+  searchParams: { page?: string; status?: string }
 }) {
   const supabase = createClient()
   const SELECT_COLS =
@@ -31,12 +42,16 @@ export default async function CustomersPage({
   const page = Math.max(1, Number(searchParams.page) || 1)
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
+  const statusFilter = searchParams.status && VALID_STATUSES.has(searchParams.status) ? searchParams.status : null
 
-  const { data: customers, error, count } = await supabase
+  let query = supabase
     .from("customers")
     .select(SELECT_COLS, { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to)
+  if (statusFilter) query = query.eq("status", statusFilter)
+
+  const { data: customers, error, count } = await query
 
   const rows = (customers ?? []) as Pick<
     Customer,
@@ -64,7 +79,9 @@ export default async function CustomersPage({
             Quản lý danh sách khách BĐS có SĐT để AI gọi.{" "}
             {error
               ? "(lỗi tải data)"
-              : `Tổng ${totalCount.toLocaleString("vi-VN")} khách · Trang ${currentPage}/${totalPages}.`}
+              : statusFilter
+                ? `Lọc theo ${STATUS_LABEL_MAP[statusFilter] ?? statusFilter}: ${totalCount.toLocaleString("vi-VN")} khách · Trang ${currentPage}/${totalPages}.`
+                : `Tổng ${totalCount.toLocaleString("vi-VN")} khách · Trang ${currentPage}/${totalPages}.`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -83,10 +100,8 @@ export default async function CustomersPage({
             className="w-full pl-9 pr-3 py-2 text-base bg-surface-2 border border-line-2 rounded-[10px] outline-none focus:border-brand-blue transition-colors"
           />
         </div>
-        <button className="btn-ghost btn-sm">
-          <Filter size={14} /> Trạng thái
-        </button>
-        <button className="btn-ghost btn-sm">
+        <StatusFilter />
+        <button className="btn-ghost btn-sm" disabled title="Sẽ làm sau">
           <Filter size={14} /> Dự án
         </button>
       </div>
@@ -217,11 +232,26 @@ export default async function CustomersPage({
           </table>
         </div>
         {totalPages > 1 && (
-          <Pagination currentPage={currentPage} totalPages={totalPages} totalCount={totalCount} pageSize={PAGE_SIZE} from={from} shown={rows.length} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={PAGE_SIZE}
+            from={from}
+            shown={rows.length}
+            statusFilter={statusFilter}
+          />
         )}
       </div>
     </div>
   )
+}
+
+function buildPageHref(page: number, statusFilter: string | null) {
+  const sp = new URLSearchParams()
+  sp.set("page", String(page))
+  if (statusFilter) sp.set("status", statusFilter)
+  return `/customers?${sp.toString()}`
 }
 
 function Pagination({
@@ -231,6 +261,7 @@ function Pagination({
   pageSize,
   from,
   shown,
+  statusFilter,
 }: {
   currentPage: number
   totalPages: number
@@ -238,6 +269,7 @@ function Pagination({
   pageSize: number
   from: number
   shown: number
+  statusFilter: string | null
 }) {
   const pages = buildPageList(currentPage, totalPages)
   const showStart = from + 1
@@ -249,30 +281,30 @@ function Pagination({
         / {totalCount.toLocaleString("vi-VN")} khách
       </div>
       <nav className="flex items-center gap-1 flex-wrap">
-        <PageLink page={currentPage - 1} disabled={currentPage <= 1} label="Trước" icon="prev" />
+        <PageLink href={buildPageHref(currentPage - 1, statusFilter)} disabled={currentPage <= 1} label="Trước" icon="prev" />
         {pages.map((p, idx) =>
           p === "…" ? (
             <span key={`gap-${idx}`} className="px-2 text-ink-3 text-sm">
               …
             </span>
           ) : (
-            <PageLink key={p} page={p} active={p === currentPage} label={String(p)} />
+            <PageLink key={p} href={buildPageHref(p, statusFilter)} active={p === currentPage} label={String(p)} />
           ),
         )}
-        <PageLink page={currentPage + 1} disabled={currentPage >= totalPages} label="Sau" icon="next" />
+        <PageLink href={buildPageHref(currentPage + 1, statusFilter)} disabled={currentPage >= totalPages} label="Sau" icon="next" />
       </nav>
     </div>
   )
 }
 
 function PageLink({
-  page,
+  href,
   label,
   active,
   disabled,
   icon,
 }: {
-  page: number
+  href: string
   label: string
   active?: boolean
   disabled?: boolean
@@ -291,7 +323,7 @@ function PageLink({
   }
   return (
     <Link
-      href={`/customers?page=${page}`}
+      href={href}
       className={
         active
           ? `${base} bg-brand-blue text-white shadow-sm`
